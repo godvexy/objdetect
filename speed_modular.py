@@ -11,6 +11,7 @@ user_right_margin=0.90
 filepath=r'C:\Users\AutomaC\Desktop\ML2\car_video.mp4'
 user_class_id=[1,2,3,5,7]
 prop_val = 0.0025
+perc=15
 
 
 
@@ -102,7 +103,7 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         y_car=avg_last_car
         percentage_increase_car = ((y_car - x_car) / x_car) * 100
         print(percentage_increase_car)
-        if percentage_increase_car>0:
+        if percentage_increase_car>perc:
             tts('car',engine)
             car=0
             area_car.clear()
@@ -119,7 +120,7 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         x_bus=avg_first_bus
         y_bus=avg_last_bus
         percentage_increase_bus = ((y_bus - x_bus) / x_bus) * 100
-        if percentage_increase_bus>0:
+        if percentage_increase_bus>perc:
             tts('bus',engine)
             bus=0
             area_bus.clear()
@@ -136,7 +137,7 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         x_truck=avg_first_truck
         y_truck=avg_last_truck
         percentage_increase_truck = ((y_truck - x_truck) / x_truck) * 100
-        if percentage_increase_truck>0:
+        if percentage_increase_truck>perc:
             tts('truck',engine)
             truck=0
             area_truck.clear()
@@ -154,7 +155,7 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         y_cycle=avg_last_cycle
         percentage_increase_cycle = ((y_cycle - x_cycle) / x_cycle) * 100
         print(percentage_increase_cycle)
-        if percentage_increase_cycle>0:
+        if percentage_increase_cycle>perc:
             tts('cycle',engine)
             cycle=0
             area_cycle.clear()
@@ -171,7 +172,7 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         x_bike=avg_first_bike
         y_bike=avg_last_bike
         percentage_increase_bike = ((y_bike - x_bike) / x_bike) * 100
-        if percentage_increase_bike>0:
+        if percentage_increase_bike>perc:
             tts('bike',engine)
             bike=0
             area_bike.clear()
