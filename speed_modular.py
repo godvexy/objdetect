@@ -4,11 +4,11 @@ import cv2
 import pyttsx3
 
 #user input values
-user_fps_value=2
+user_fps_value=1
 user_conf_value=0.35
 user_left_margin=0.10
 user_right_margin=0.90
-filepath=r'C:\Users\AutomaC\Desktop\ML2\car_video.mp4'
+filepath=r'C:\Users\user\Desktop\sameer2\test12.mp4'
 user_class_id=[1,2,3,5,7]
 prop_val = 0.0025
 perc=15
@@ -47,11 +47,15 @@ def tts(name,engine):
 
 
 
+def calculate_distance(width_in_frame, known_width, focal_length):
+    
+    distance = (focal_length * known_width) / width_in_frame
+    return distance
+    
 #preprocess frame
-def preprocess(frame,left,right):
+def preprocess(frame):
     height,width=frame.shape[:2]
     if width>height:
-
         crop_width=int(width*0.75)
         crop_height=int(height*1)
         start_x=(width-crop_width)//2
@@ -62,38 +66,48 @@ def preprocess(frame,left,right):
     return c_frame
 
 #penalty function for missed detect
-def penalty(list_id,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle):
-    if 1.0 not in list_id:
+def penalty(list_id,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance):
+    if len(list_id)==0:
         cycle=max(0,cycle-5)
         area_cycle=area_cycle[5:]
-    if 2.0 not in list_id:
+        cycle_distance[5:]
         car=max(0,car-5)
         area_car=area_car[5:]
-    if 3.0 not in list_id:
+        car_distance[5:]
         bike=max(0,bike-5)
         area_bike=area_bike[5:]
-    if 5.0 not in list_id:
-        bus=max(0,bus-5)
-        area_bus=area_bus[5:]             
-    if 7.0 not in list_id:
-        truck=max(0,truck-5)
-        area_truck=area_truck[5:]
-    if not list_id:
-        cycle=max(0,cycle-5)
-        area_cycle=area_cycle[5:]
-        car=max(0,car-5)
-        area_car=area_car[5:]
-        bike=max(0,bike-5)
-        area_bike=area_bike[5:]
+        bike_distance[5:]
         bus=max(0,bus-5)
         area_bus=area_bus[5:]
+        bus_distance[5:]  
         truck=max(0,truck-5)
         area_truck=area_truck[5:]
+        truck_distance[5:]
     else:
-        pass   
-    return car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle
+        if 1.0 not in list_id:
+            cycle=max(0,cycle-5)
+            area_cycle=area_cycle[5:]
+            cycle_distance[5:]
+        if 2.0 not in list_id:
+            car=max(0,car-5)
+            area_car=area_car[5:]
+            car_distance[5:]
+        if 3.0 not in list_id:
+            bike=max(0,bike-5)
+            area_bike=area_bike[5:]
+            bike_distance[5:]
+        if 5.0 not in list_id:
+            bus=max(0,bus-5)
+            area_bus=area_bus[5:]
+            bus_distance[5:]             
+        if 7.0 not in list_id:
+            truck=max(0,truck-5)
+            area_truck=area_truck[5:]
+            truck_distance[5:]
+         
+    return car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance
 #checkpoint for tts
-def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,engine):
+def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,engine,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance):
     if car>fps2:
         first10_Car=area_car[:10]
         avg_first_car=sum(first10_Car)/len(first10_Car)
@@ -102,15 +116,21 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         x_car=avg_first_car
         y_car=avg_last_car
         percentage_increase_car = ((y_car - x_car) / x_car) * 100
-        print(percentage_increase_car)
-        if percentage_increase_car>perc:
+        first10distance_car=car_distance[:10]
+        avg_first_car_distance=sum(first10distance_car)/len(first10distance_car)
+        last10distance_car=car_distance[-10:]
+        avg_last_car_distance=sum(last10distance_car)/len(last10distance_car)
+        if percentage_increase_car>perc and avg_first_car_distance>avg_last_car_distance:
+            
             tts('car',engine)
             car=0
             area_car.clear()
             
+            car_distance.clear()
         else:
             car=0
             area_car.clear()
+            car_distance.clear()
             
     if bus>fps2:
         first10_bus=area_bus[:10]
@@ -120,14 +140,19 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         x_bus=avg_first_bus
         y_bus=avg_last_bus
         percentage_increase_bus = ((y_bus - x_bus) / x_bus) * 100
-        if percentage_increase_bus>perc:
+        first10distance_bus=bus_distance[:10]
+        avg_first_bus_distance=sum(first10distance_bus)/len(first10distance_bus)
+        last10distance_bus=bus_distance[-10:]
+        avg_last_bus_distance=sum(last10distance_bus)/len(last10distance_bus)
+        if percentage_increase_bus>perc and avg_first_bus_distance>avg_last_bus_distance:
             tts('bus',engine)
             bus=0
             area_bus.clear()
-            
+            bus_distance.clear()
         else:
             bus=0
             area_bus.clear()
+            bus_distance.clear()
             
     if truck>fps2:
         first10_truck=area_truck[:10]
@@ -137,15 +162,19 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         x_truck=avg_first_truck
         y_truck=avg_last_truck
         percentage_increase_truck = ((y_truck - x_truck) / x_truck) * 100
-        if percentage_increase_truck>perc:
+        first10distance_truck=truck_distance[:10]
+        avg_first_truck_distance=sum(first10distance_truck)/len(first10distance_truck)
+        last10distance_truck=truck_distance[-10:]
+        avg_last_truck_distance=sum(last10distance_truck)/len(last10distance_truck)
+        if percentage_increase_truck>perc and avg_first_truck_distance>avg_last_truck_distance:
             tts('truck',engine)
             truck=0
             area_truck.clear()
-            
+            truck_distance.clear()
         else:
             truck=0
             area_truck.clear()
-            
+            truck_distance.clear()
     if cycle>fps2:
         first10_cycle=area_cycle[:10]
         avg_first_cycle=sum(first10_cycle)/len(first10_cycle)
@@ -154,16 +183,20 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         x_cycle=avg_first_cycle
         y_cycle=avg_last_cycle
         percentage_increase_cycle = ((y_cycle - x_cycle) / x_cycle) * 100
-        print(percentage_increase_cycle)
-        if percentage_increase_cycle>perc:
+        first10distance_cycle=cycle_distance[:10]
+        avg_first_cycle_distance=sum(first10distance_cycle)/len(first10distance_cycle)
+        last10distance_cycle=cycle_distance[-10:]
+        avg_last_cycle_distance=sum(last10distance_cycle)/len(last10distance_cycle)
+        print(cycle_distance)
+        if percentage_increase_cycle>perc and avg_first_cycle_distance>avg_last_cycle_distance:
             tts('cycle',engine)
             cycle=0
             area_cycle.clear()
-            
+            cycle_distance.clear()
         else:
             cycle=0
             area_cycle.clear()
-            
+            cycle_distance.clear()
     if bike>fps2:
         first10_bike=area_bike[:10]
         avg_first_bike=sum(first10_bike)/len(first10_bike)
@@ -172,18 +205,23 @@ def checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_b
         x_bike=avg_first_bike
         y_bike=avg_last_bike
         percentage_increase_bike = ((y_bike - x_bike) / x_bike) * 100
-        if percentage_increase_bike>perc:
+        first10distance_bike=bike_distance[:10]
+        avg_first_bike_distance=sum(first10distance_bike)/len(first10distance_bike)
+        last10distance_bike=bike_distance[-10:]
+        avg_last_bike_distance=sum(last10distance_bike)/len(last10distance_bike)
+        if percentage_increase_bike>perc and avg_first_bike_distance>avg_last_bike_distance:
             tts('bike',engine)
             bike=0
             area_bike.clear()
-            
+            bike_distance.clear()
         else:
             bike=0
             area_bike.clear()
-    return car, bus, truck, cycle, bike, area_car, area_bus, area_truck, area_bike, area_cycle
+            bike_distance.clear()
+    return car, bus, truck, cycle, bike, area_car, area_bus, area_truck, area_bike, area_cycle, car_distance,bus_distance,truck_distance,cycle_distance,bike_distance
 
 # Process each frame
-def process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle):
+def process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance):
     results = model(cropped_frame, show=True,classes=user_class_id,conf=user_conf_value)
     a=results[0].boxes.data
     a=a.detach().cpu().numpy()
@@ -191,7 +229,7 @@ def process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,tru
     list_id=[]
     for value in px.iloc[:, -1]: 
         list_id.append(value)
-        car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle=penalty(list_id,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle)
+        car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance=penalty(list_id,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance)
     for index, row in px.iterrows():
         d = int(row[5])
         c = class_list[d]
@@ -206,15 +244,19 @@ def process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,tru
             y2 = int(row[3])
             area=(x2-x1)*(y2-y1)
             prop=area/area_frame
-            print(prop)
             if prop>prop_val:
                 centre_car=x1+x2/2
                 if left_margin<centre_car<right_margin:
                     car=car+1
                     area_car.append(area)
+                    width=x2-x1
+                    dist=calculate_distance(width,known_width,focal_length)
+                    car_distance.append(dist)
+
             else:
                 car=max(0,car-5)
                 area_car=area_car[5:]
+                car_distance[5:]
                     
         elif 'bicycle' in c:
             x1 = int(row[0])
@@ -226,9 +268,13 @@ def process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,tru
             if prop>prop_val:
                 cycle=cycle+1
                 area_cycle.append(area)
+                width=x2-x1
+                dist=calculate_distance(width,known_width,focal_length)
+                cycle_distance.append(dist)
             else:
                 cycle=max(0,cycle-5)
                 area_cycle=area_cycle[5:]
+                cycle_distance[5:]
                 
 
         elif 'truck' in c:
@@ -243,9 +289,13 @@ def process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,tru
                 if left_margin<centre_truck<right_margin:
                     truck=truck+1
                     area_truck.append(truck)
+                    width=x2-x1
+                    dist=calculate_distance(width,known_width,focal_length)
+                    truck_distance.append(dist)
                 else:
                     truck=max(0,truck-5)
                     area_truck=area_truck[5:]
+                    truck_distance[5:]
                     
         elif 'bus' in c:
             x1 = int(row[0])
@@ -259,9 +309,13 @@ def process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,tru
                 if left_margin<centre_bus<right_margin:
                     bus=bus+1
                     area_bus.append(area)
+                    width=x2-x1
+                    dist=calculate_distance(width,known_width,focal_length)
+                    bus_distance.append(dist)
                 else:
                     bus=max(0,bus-5)
                     area_bus=area_bus[5:]
+                    bus_distance[5:]
                     
         elif 'motorcycle' in c:
             x1 = int(row[0])
@@ -273,13 +327,17 @@ def process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,tru
             if prop>prop_val:
                 bike=bike+1
                 area_bike.append(area)
+                width=x2-x1
+                dist=calculate_distance(width,known_width,focal_length)
+                bike_distance.append(dist)
             else:
                 bike=max(0,bike-5)
                 area_bike=area_bike[5:]
+                bike_distance[5:]
                 
         else:
             pass
-    return car, bus, truck, cycle, bike, area_car, area_bus, area_truck, area_bike, area_cycle
+    return car, bus, truck, cycle, bike, area_car, area_bus, area_truck, area_bike, area_cycle, car_distance,bus_distance,truck_distance,cycle_distance,bike_distance
 # Main function to run the program
 def main():
     engine = init_engine()
@@ -298,6 +356,13 @@ def main():
     global area_bus
     global area_bike
     global area_truck
+    global car_distance
+    global bus_distance
+    global truck_distance
+    global bike_distance
+    global cycle_distance
+    global known_width
+    global focal_length
     car=0
     bus=0
     truck=0
@@ -308,18 +373,26 @@ def main():
     area_bus=[]
     area_bike=[]
     area_truck=[]
+    car_distance=[]
+    bus_distance=[]
+    truck_distance=[]
+    bike_distance=[]
+    cycle_distance=[]
+    known_width= 180.0
+    focal_length = 600 
     while True:
-        car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle=checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,engine)
+        car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance=checkpoint(fps2,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,engine,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance)
         ret, frame = cap.read()
         if not ret:
             break
-        cropped_frame=preprocess(frame,user_left_margin,user_right_margin)
-        car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle=process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle)
+        cropped_frame=preprocess(frame)
+        car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance=process_frame(cropped_frame, model,user_conf_value,user_class_id,car,bus,truck,cycle,bike,area_car,area_bus,area_truck,area_bike,area_cycle,car_distance,bus_distance,truck_distance,cycle_distance,bike_distance)
         print("Car count is:",car)  
         print("Cycle count is:",cycle) 
         print("Truck count is:",truck)
         print("Bus count is:",bus)
         print("Bike count is:",bike)
+        
 
     cap.release()
     cv2.destroyAllWindows()
